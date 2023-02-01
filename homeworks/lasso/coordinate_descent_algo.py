@@ -16,12 +16,12 @@ def precalculate_a(X: np.ndarray) -> np.ndarray:
     Returns:
         np.ndarray: An (d, ) array, which contains a corresponding `a` value for each feature.
     """
-    return 2*np.sum(X**2, axis=0)
+    return 2 * np.sum(X ** 2, axis=0)
 
 
 @problem.tag("hw2-A")
 def step(
-    X: np.ndarray, y: np.ndarray, weight: np.ndarray, a: np.ndarray, _lambda: float
+        X: np.ndarray, y: np.ndarray, weight: np.ndarray, a: np.ndarray, _lambda: float
 ) -> Tuple[np.ndarray, float]:
     """Single step in coordinate gradient descent.
     It should update every entry in weight, and then return an updated version of weight along with calculated bias on input weight!
@@ -41,20 +41,27 @@ def step(
         When calculating weight[k] you should use entries in weight[0, ..., k - 1] that have already been calculated and updated.
         This has no effect on entries weight[k + 1, k + 2, ...]
     """
-    bias = 0
-    for i in range(X.shape[0]):
-        bias += y[i] - np.dot(X[i, :], weight)
-    bias /= X.shape[0]
-    l = loss(X, y, weight, bias, _lambda)
+    bias = np.mean(y - X.dot(weight))
 
-    for i in range(X.shape[1]):
-        
-    raise NotImplementedError("Your Code Goes Here")
+    for k in range(X.shape[1]):
+        except_k = [i for i in range(X.shape[1]) if i != k]
+        prediction_wo_k = X[:, except_k].dot(weight[except_k]) + bias
+        c_k = X[:, k].dot(y - prediction_wo_k)
+        c_k = 2 * np.sum(c_k)
+
+        if c_k < -_lambda:
+            weight[k] = (c_k + _lambda) / a[k]
+        elif c_k > _lambda:
+            weight[k] = (c_k - _lambda) / a[k]
+        else:
+            weight[k] = 0
+
+    return weight, float(bias)
 
 
 @problem.tag("hw2-A")
 def loss(
-    X: np.ndarray, y: np.ndarray, weight: np.ndarray, bias: float, _lambda: float
+        X: np.ndarray, y: np.ndarray, weight: np.ndarray, bias: float, _lambda: float
 ) -> float:
     """L-1 (Lasso) regularized MSE loss.
 
@@ -70,18 +77,18 @@ def loss(
     """
     result = 0
     for i in range(X.shape[0]):
-        result += (np.dot(X[i, :], weight) + bias - y[i])**2
+        result += (np.dot(X[i, :], weight) + bias - y[i]) ** 2
     result += _lambda * np.sum(np.abs(weight))
     return result
 
 
 @problem.tag("hw2-A", start_line=4)
 def train(
-    X: np.ndarray,
-    y: np.ndarray,
-    _lambda: float = 0.01,
-    convergence_delta: float = 1e-4,
-    start_weight: np.ndarray = None,
+        X: np.ndarray,
+        y: np.ndarray,
+        _lambda: float = 0.01,
+        convergence_delta: float = 1e-4,
+        start_weight: np.ndarray = None,
 ) -> Tuple[np.ndarray, float]:
     """Trains a model and returns predicted weight and bias.
 
@@ -115,13 +122,20 @@ def train(
         start_weight = np.zeros(X.shape[1])
     a = precalculate_a(X)
     old_w: Optional[np.ndarray] = None
+    bias = 0
 
-    raise NotImplementedError("Your Code Goes Here")
+    while True:
+        old_w = start_weight
+        start_weight, bias = step(X, y, start_weight, a, _lambda)
+        if convergence_criterion(start_weight, old_w, convergence_delta):
+            break
+
+    return start_weight, bias
 
 
 @problem.tag("hw2-A")
 def convergence_criterion(
-    weight: np.ndarray, old_w: np.ndarray, convergence_delta: float
+        weight: np.ndarray, old_w: np.ndarray, convergence_delta: float
 ) -> bool:
     """Function determining whether weight has converged or not.
     It should calculate the maximum absolute change between weight and old_w vector, and compate it to convergence delta.
@@ -143,8 +157,18 @@ def main():
     """
     Use all of the functions above to make plots.
     """
-    raise NotImplementedError("Your Code Goes Here")
+    X = np.random.normal(0, 1, (500, 1000))
+    w = np.zeros(1000)
+    k = 100
+    for j in range(k):
+        w[j] = (j + 1) / k
+    y = X.dot(w) + np.random.normal(0, 1, 500)
+
+    for _lambda in range(10, -1, -2):
+        train(X, y, _lambda, 1e-4, w)
+        print(_lambda)
 
 
 if __name__ == "__main__":
     main()
+    
