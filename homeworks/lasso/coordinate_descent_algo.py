@@ -159,7 +159,8 @@ def main():
         w[j] = (j + 1) / k
     y = X.dot(w) + np.random.normal(0, 1, 500)
 
-    def update_metrics(nw, fdr, tpr, xs, ys, _lambda):
+    def helper(fdr, tpr, xs, ys, _lambda):
+        nw = np.copy(w)
         train(X, y, _lambda, 1e-4, nw)
         fdr.append(np.count_nonzero(nw[100:]) / max(1, np.count_nonzero(nw)))
         tpr.append(np.count_nonzero(nw[:100]) / 100)
@@ -168,18 +169,16 @@ def main():
 
     fdr, tpr = [], []
     xs, ys = [], []
-    w = np.zeros(1000)
-    nw = np.copy(w)
 
     for _lambda in range(1500, 1, -50):
-        update_metrics(nw, fdr, tpr, xs, ys, _lambda)
+        helper(fdr, tpr, xs, ys, _lambda)
 
     _lambda = 1
     for i in range(4):
-        update_metrics(nw, fdr, tpr, xs, ys, _lambda)
+        helper(fdr, tpr, xs, ys, _lambda)
         _lambda -= 0.2
 
-    update_metrics(nw, fdr, tpr, xs, ys, 0)
+    helper(fdr, tpr, xs, ys, 0)
 
     plt.plot(xs, ys)
     plt.xlabel('Lambda')
