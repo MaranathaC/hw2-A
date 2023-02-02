@@ -75,11 +75,8 @@ def loss(
     Returns:
         float: value of the loss function
     """
-    result = 0
-    for i in range(X.shape[0]):
-        result += (np.dot(X[i, :], weight) + bias - y[i]) ** 2
-    result += _lambda * np.sum(np.abs(weight))
-    return result
+    residual = np.sum((y - X.dot(weight) - bias) ** 2)
+    return residual + _lambda * np.sum(np.abs(weight))
 
 
 @problem.tag("hw2-A", start_line=4)
@@ -121,8 +118,6 @@ def train(
     if start_weight is None:
         start_weight = np.zeros(X.shape[1])
     a = precalculate_a(X)
-    old_w: Optional[np.ndarray] = None
-    bias = 0
 
     while True:
         old_w = start_weight
@@ -164,11 +159,39 @@ def main():
         w[j] = (j + 1) / k
     y = X.dot(w) + np.random.normal(0, 1, 500)
 
-    for _lambda in range(10, -1, -2):
-        train(X, y, _lambda, 1e-4, w)
-        print(_lambda)
+    def update_metrics(nw, fdr, tpr, xs, ys, _lambda):
+        train(X, y, _lambda, 1e-4, nw)
+        fdr.append(np.count_nonzero(nw[100:]) / max(1, np.count_nonzero(nw)))
+        tpr.append(np.count_nonzero(nw[:100]) / 100)
+        xs.append(_lambda)
+        ys.append(np.count_nonzero(nw))
+
+    fdr, tpr = [], []
+    xs, ys = [], []
+    w = np.zeros(1000)
+    nw = np.copy(w)
+
+    for _lambda in range(1500, 1, -50):
+        update_metrics(nw, fdr, tpr, xs, ys, _lambda)
+
+    _lambda = 1
+    for i in range(4):
+        update_metrics(nw, fdr, tpr, xs, ys, _lambda)
+        _lambda -= 0.2
+
+    update_metrics(nw, fdr, tpr, xs, ys, 0)
+
+    plt.plot(xs, ys)
+    plt.xlabel('Lambda')
+    plt.xscale('log')
+    plt.ylabel('Non-zeros')
+    plt.show()
+
+    plt.plot(fdr, tpr)
+    plt.xlabel('False Discovery Rate')
+    plt.ylabel('True Positive Rate')
+    plt.show()
 
 
 if __name__ == "__main__":
     main()
-    
